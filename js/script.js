@@ -1,8 +1,9 @@
-// Constantes de configuração do jogo
+// constantes do jogo
 const TEMPO_INICIAL = 30;
 const TAMANHO_ALVO = 50;
 const ALTURA_PLACAR = 70;
-const TEMPO_BASE_ALVO = 1500; // 1,5 segundos
+const TEMPO_BASE_ALVO = 1500;
+const MAX_ALVOS_SIMULTANEOS = 3;
 const CORES_ESTRELAS = ["#ffffff", "#ffe81f", "#4bd5ec", "#ff9ff3", "#a29bfe"];
 const CHAVE_RANKING = "cacaEstelarRankingTop5";
 const CHAVE_ULTIMO_PILOTO = "cacaEstelarUltimoPiloto";
@@ -12,10 +13,10 @@ let pontos = 0;
 let tempo = TEMPO_INICIAL;
 let nomePiloto = "Piloto";
 let intervaloCronometro = null;
-let timeoutAlvo = null;
 let jogoAtivo = false;
+const timersAlvos = new Set();
 
-// Referências aos elementos do DOM
+// pegando elementos do html
 const spanPilotoAtual = document.getElementById("pilotoAtual");
 const spanPontos = document.getElementById("pontos");
 const spanTempo = document.getElementById("tempo");
@@ -30,16 +31,22 @@ const boxRankingInicial = document.getElementById("boxRankingInicial");
 const listaRankingInicial = document.getElementById("listaRankingInicial");
 const listaRankingFim = document.getElementById("listaRankingFim");
 
-// Referências aos áudios
+// audios
 const audioFundo = document.getElementById("audioFundo");
 const audioLaser = document.getElementById("audioLaser");
 const audioImpactoNave = document.getElementById("audioImpactoNave");
 const audioExplosao = document.getElementById("audioExplosao");
 const audioBonusTempo = document.getElementById("audioBonusTempo");
 
-// 1. Cria as estrelas no fundo usando laço for e createElement
+// quantidade de estrelas de acordo com o tamanho da tela
+function calcularQuantidadeEstrelas() {
+    const areaTela = window.innerWidth * window.innerHeight;
+    return Math.max(30, Math.floor(areaTela / 15000));
+}
+
+// cria as estrelas no fundo
 function criarEstrelas() {
-    const numStars = 100;
+    const numStars = calcularQuantidadeEstrelas();
 
     for (let cont = 0; cont < numStars; cont++) {
         const star = document.createElement("div");
@@ -57,6 +64,7 @@ function criarEstrelas() {
     }
 }
 
+// refaz as estrelas se mudar o tamanho da janela
 window.addEventListener("resize", function () {
     document.querySelectorAll(".star").forEach(function (s) {
         s.remove();
@@ -64,14 +72,33 @@ window.addEventListener("resize", function () {
     criarEstrelas();
 });
 
-// 2. retorna x, y descontando o tamanho do alvo e a barra do placar
+// retorna x, y dentro da tela sem bater no placar nem em outro alvo
 function posicaoAleatoria() {
     const limiteX = Math.max(0, window.innerWidth - TAMANHO_ALVO);
     const limiteSuperiorY = ALTURA_PLACAR;
     const limiteInferiorY = Math.max(limiteSuperiorY, window.innerHeight - TAMANHO_ALVO);
+    const alvosAtivos = document.querySelectorAll(".alvo");
 
-    const x = Math.floor(Math.random() * limiteX);
-    const y = Math.floor(Math.random() * (limiteInferiorY - limiteSuperiorY)) + limiteSuperiorY;
+    let x = 0;
+    let y = limiteSuperiorY;
+
+    for (let tentativa = 0; tentativa < 15; tentativa++) {
+        x = Math.floor(Math.random() * limiteX);
+        y = Math.floor(Math.random() * (limiteInferiorY - limiteSuperiorY)) + limiteSuperiorY;
+
+        let sobrepos = false;
+        alvosAtivos.forEach(function (outro) {
+            const outroX = parseInt(outro.style.left, 10) || 0;
+            const outroY = parseInt(outro.style.top, 10) || 0;
+            const distancia = Math.hypot(x - outroX, y - outroY);
+
+            if (distancia < TAMANHO_ALVO + 10) {
+                sobrepos = true;
+            }
+        });
+
+        if (!sobrepos) break;
+    }
 
     return [x, y];
 }
@@ -83,7 +110,7 @@ function atualizarPlacar() {
     spanTempo.textContent = tempo;
 }
 
-// mostrar tempo flutuante 
+// mostrar tempo e pontos flutuando
 function mostrarFeedback(x, y, texto, cor) {
     const msg = document.createElement("span");
     msg.className = "feedback-flutuante";
@@ -98,27 +125,29 @@ function mostrarFeedback(x, y, texto, cor) {
     }, 750);
 }
 
-// remove alvo da tela e reinicia temporizador 
+// remove todos os alvos da tela e limpa os timers
 function limparAlvosAtivos() {
-    clearTimeout(timeoutAlvo);
+    timersAlvos.forEach(function (timerId) {
+        clearTimeout(timerId);
+    });
+    timersAlvos.clear();
+
     document.querySelectorAll(".alvo").forEach(function (alvo) {
         alvo.remove();
     });
 }
 
-// aumento de dificuldade 
+// aumento de dificuldade
 function calcularTempoAlvo() {
-    return Math.max(600, TEMPO_BASE_ALVO - pontos * 45);
+    return Math.max(700, TEMPO_BASE_ALVO - pontos * 40);
 }
 
-// Sistema de audio do jogo 
-
+// Sistema de audio do jogo
 function tocarSom(elementoAudio, volume = 0.85) {
     if (!elementoAudio) return;
     elementoAudio.volume = volume;
     elementoAudio.currentTime = 0;
-    elementoAudio.play().catch(function () {
-    });
+    elementoAudio.play().catch(function () {});
 }
 
 function iniciarMusicaFundo() {
@@ -129,24 +158,50 @@ function iniciarMusicaFundo() {
     }
 }
 
-// som sempre ao clicar 
+// som sempre ao clicar
 document.addEventListener("mousedown", function () {
     if (!jogoAtivo) return;
     tocarSom(audioLaser, 0.4);
 });
 
-// criando os alvos
+// sorteia se vem 1, 2 ou 3 alvos
+function sortearQuantidadeAlvos() {
+    const sorteio = Math.random();
+    if (sorteio < 0.50) return 1;
+    if (sorteio < 0.85) return 2;
+    return 3;
+}
 
-function criarAlvo() {
+// controla quando aparecem mais alvos na tela
+function gerarOndaDeAlvos(forcarGeracao = false) {
     if (!jogoAtivo) return;
 
-    limparAlvosAtivos();
+    const alvosNaTela = document.querySelectorAll(".alvo").length;
+    if (alvosNaTela >= MAX_ALVOS_SIMULTANEOS) return;
+
+    if (alvosNaTela === 0 || forcarGeracao) {
+        const qtd = sortearQuantidadeAlvos();
+        for (let i = 0; i < qtd; i++) {
+            criarUnicoAlvo();
+        }
+    } else if (Math.random() < 0.35) {
+        const vagas = MAX_ALVOS_SIMULTANEOS - alvosNaTela;
+        const qtdExtra = Math.min(vagas, Math.random() < 0.7 ? 1 : 2);
+        for (let i = 0; i < qtdExtra; i++) {
+            criarUnicoAlvo();
+        }
+    }
+}
+
+// criando os alvos
+function criarUnicoAlvo() {
+    if (!jogoAtivo) return;
 
     const alvo = document.createElement("div");
     const [x, y] = posicaoAleatoria();
     const sorteio = Math.random();
 
-    // % dos icones que vão aparecer 
+    // % dos icones que vão aparecer
     let tipoAlvo = "nave";
     if (sorteio < 0.10) {
         tipoAlvo = "ampulheta";
@@ -168,11 +223,23 @@ function criarAlvo() {
     alvo.style.left = `${x}px`;
     alvo.style.top = `${y}px`;
 
-    // evento de clique na tela 
+    // alvo sai da tela se não clicar
+    const timerId = setTimeout(function () {
+        timersAlvos.delete(timerId);
+        if (!jogoAtivo) return;
+
+        alvo.remove();
+        gerarOndaDeAlvos();
+    }, calcularTempoAlvo());
+
+    timersAlvos.add(timerId);
+
+    // clique no alvo
     alvo.addEventListener("click", function () {
         if (!jogoAtivo) return;
 
-        clearTimeout(timeoutAlvo);
+        clearTimeout(timerId);
+        timersAlvos.delete(timerId);
         alvo.remove();
 
         if (tipoAlvo === "ampulheta") {
@@ -190,21 +257,13 @@ function criarAlvo() {
         }
 
         atualizarPlacar();
-        criarAlvo();
+        gerarOndaDeAlvos();
     });
 
     document.body.append(alvo);
-
-    // alvo sai da tela se não clicar
-    timeoutAlvo = setTimeout(function () {
-        if (!jogoAtivo) return;
-        alvo.remove();
-        criarAlvo();
-    }, calcularTempoAlvo());
 }
 
-// Sistema de pontuaçaao
-
+// Sistema de pontuacao
 function obterRanking() {
     try {
         const dados = localStorage.getItem(CHAVE_RANKING);
@@ -214,6 +273,7 @@ function obterRanking() {
     }
 }
 
+// salva e ordena os 5 melhores
 function salvarPontuacaoNoRanking(nome, pontuacao) {
     const ranking = obterRanking();
     ranking.push({
@@ -221,7 +281,6 @@ function salvarPontuacaoNoRanking(nome, pontuacao) {
         pontos: pontuacao
     });
 
-    // Ordena do maior para o menor e mantém apenas os 5 melhores
     ranking.sort(function (a, b) {
         return b.pontos - a.pontos;
     });
@@ -231,6 +290,7 @@ function salvarPontuacaoNoRanking(nome, pontuacao) {
     return top5;
 }
 
+// monta a lista do ranking na tela
 function preencherListaRanking(elementoLista, ranking) {
     elementoLista.innerHTML = "";
 
@@ -272,8 +332,7 @@ function atualizarTelasRanking() {
     }
 }
 
-// --- CONTROLE DE INÍCIO E FIM DE JOGO ---
-
+// fim de jogo
 function finalizarJogo() {
     jogoAtivo = false;
     clearInterval(intervaloCronometro);
@@ -287,6 +346,7 @@ function finalizarJogo() {
     telaFim.classList.add("d-flex");
 }
 
+// inicia ou reinicia a partida
 function iniciarJogo() {
     const nomeDigitado = inputNome.value.trim();
     nomePiloto = nomeDigitado !== "" ? nomeDigitado : "Piloto";
@@ -306,7 +366,7 @@ function iniciarJogo() {
     telaFim.classList.add("d-none");
 
     iniciarMusicaFundo();
-    criarAlvo();
+    gerarOndaDeAlvos(true);
 
     intervaloCronometro = setInterval(function () {
         tempo--;
@@ -318,6 +378,7 @@ function iniciarJogo() {
     }, 1000);
 }
 
+// botoes
 btnIniciar.addEventListener("click", iniciarJogo);
 btnReiniciar.addEventListener("click", iniciarJogo);
 
@@ -326,7 +387,7 @@ btnLimparRanking.addEventListener("click", function () {
     atualizarTelasRanking();
 });
 
-// Inicialização ao abrir a página
+// carrega o ultimo nome digitado e inicia o fundo
 const ultimoPilotoSalvo = localStorage.getItem(CHAVE_ULTIMO_PILOTO);
 if (ultimoPilotoSalvo) {
     inputNome.value = ultimoPilotoSalvo;
