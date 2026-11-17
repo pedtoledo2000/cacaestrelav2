@@ -7,7 +7,7 @@ const CORES_ESTRELAS = ["#ffffff", "#ffe81f", "#4bd5ec", "#ff9ff3", "#a29bfe"];
 const CHAVE_RANKING = "cacaEstelarRankingTop5";
 const CHAVE_ULTIMO_PILOTO = "cacaEstelarUltimoPiloto";
 
-// Variáveis de estado do jogo
+// Variáveis jogo
 let pontos = 0;
 let tempo = TEMPO_INICIAL;
 let nomePiloto = "Piloto";
@@ -64,7 +64,7 @@ window.addEventListener("resize", function () {
     criarEstrelas();
 });
 
-// 2. Retorna [x, y] descontando o tamanho do alvo e a barra do placar
+// 2. retorna x, y descontando o tamanho do alvo e a barra do placar
 function posicaoAleatoria() {
     const limiteX = Math.max(0, window.innerWidth - TAMANHO_ALVO);
     const limiteSuperiorY = ALTURA_PLACAR;
@@ -76,14 +76,14 @@ function posicaoAleatoria() {
     return [x, y];
 }
 
-// Atualiza os valores exibidos no placar
+// Placar atualizar
 function atualizarPlacar() {
     spanPilotoAtual.textContent = nomePiloto;
     spanPontos.textContent = pontos;
     spanTempo.textContent = tempo;
 }
 
-// Mostra texto flutuante (+1, -2 ou +3s) onde o jogador clicou
+// mostrar tempo flutuante 
 function mostrarFeedback(x, y, texto, cor) {
     const msg = document.createElement("span");
     msg.className = "feedback-flutuante";
@@ -98,7 +98,7 @@ function mostrarFeedback(x, y, texto, cor) {
     }, 750);
 }
 
-// Remove qualquer alvo ativo da tela e limpa seu temporizador
+// remove alvo da tela e reinicia temporizador 
 function limparAlvosAtivos() {
     clearTimeout(timeoutAlvo);
     document.querySelectorAll(".alvo").forEach(function (alvo) {
@@ -106,25 +106,24 @@ function limparAlvosAtivos() {
     });
 }
 
-// Calcula o tempo de permanência do alvo (dificuldade progressiva)
+// aumento de dificuldade 
 function calcularTempoAlvo() {
     return Math.max(600, TEMPO_BASE_ALVO - pontos * 45);
 }
 
-// --- SISTEMA DE ÁUDIO ---
+// Sistema de audio do jogo 
 
 function tocarSom(elementoAudio, volume = 0.85) {
     if (!elementoAudio) return;
     elementoAudio.volume = volume;
     elementoAudio.currentTime = 0;
     elementoAudio.play().catch(function () {
-        // Ignora bloqueio caso o arquivo ainda não esteja na pasta
     });
 }
 
 function iniciarMusicaFundo() {
     if (!audioFundo) return;
-    audioFundo.volume = 0.65; // Volume equilibrado para destacar os efeitos sonoros
+    audioFundo.volume = 0.65; // musica do fundo
     if (audioFundo.paused) {
         audioFundo.play().catch(function () {});
     }
