@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caça Estelar</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Placar fixo no topo -->
+    <header id="placar" class="fixed-top d-flex justify-content-around align-items-center py-2 px-3">
+        <div class="placar-item">
+            Piloto: <span id="pilotoAtual" class="fw-bold text-light">Piloto</span>
+        </div>
+        <div class="placar-item">
+            Pontos: <span id="pontos" class="fw-bold text-warning">0</span>
+        </div>
+        <div class="placar-item">
+            Tempo: <span id="tempo" class="fw-bold text-info">30</span>s
+        </div>
+    </header>
+
+    <!-- Tela Inicial -->
+    <main id="telaInicial" class="overlay-tela d-flex flex-column justify-content-center align-items-center text-center px-3">
+        <h1 class="display-4 fw-bold titulo-jogo mb-2">🚀 Caça Estelar</h1>
+        <p class="text-light mb-3 instrucoes-jogo">
+            🛸 Nave: <strong>+1 ponto</strong> &nbsp;|&nbsp;
+            💣 Bomba: <strong>-2 pontos</strong> &nbsp;|&nbsp;
+            ⏳ Ampulheta rara: <strong>+3 segundos</strong>
+        </p>
+
+        <div class="mb-3 w-100" style="max-width: 320px;">
+            <input
+                type="text"
+                id="inputNome"
+                class="form-control form-control-lg text-center bg-dark text-light border-warning"
+                placeholder="Digite seu nome de piloto"
+                maxlength="16"
+            >
+        </div>
+
+        <button id="btnIniciar" class="btn btn-warning btn-lg fw-bold px-5 py-2 shadow mb-4">
+            Iniciar Missão
+        </button>
+
+        <!-- Ranking na Tela Inicial -->
+        <div id="boxRankingInicial" class="card ranking-card p-3 w-100 d-none" style="max-width: 380px;">
+            <h5 class="text-warning fw-bold mb-2">🏆 Top 5 Pilotos</h5>
+            <ol id="listaRankingInicial" class="list-group list-group-flush text-start mb-0"></ol>
+        </div>
+    </main>
+
+    <!-- Tela de Fim de Jogo -->
+    <section id="telaFim" class="overlay-tela d-none flex-column justify-content-center align-items-center text-center px-3">
+        <h2 class="display-5 fw-bold text-danger mb-2">Fim de Jogo!</h2>
+        <p class="fs-4 text-light mb-3">
+            Pontuação final: <span id="pontuacaoFinal" class="fw-bold text-warning">0</span> pontos
+        </p>
+
+        <!-- Ranking Top 5 -->
+        <div class="card ranking-card p-3 w-100 mb-4" style="max-width: 400px;">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="text-warning fw-bold mb-0">🏆 Ranking Top 5</h5>
+                <button id="btnLimparRanking" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Apagar recordes salvos">
+                    Limpar
+                </button>
+            </div>
+            <ol id="listaRankingFim" class="list-group list-group-flush text-start mb-0"></ol>
+        </div>
+
+        <button id="btnReiniciar" class="btn btn-warning btn-lg fw-bold px-5 py-2 shadow">
+            Jogar novamente
+        </button>
+    </section>
+
+    <!-- Áudios do jogo -->
+    <audio id="audioFundo" src="audio/musica-fundo.mp3" loop preload="auto"></audio>
+    <audio id="audioLaser" src="audio/laser.mp3" preload="auto"></audio>
+    <audio id="audioImpactoNave" src="audio/impacto-nave.mp3" preload="auto"></audio>
+    <audio id="audioExplosao" src="audio/explosao.mp3" preload="auto"></audio>
+    <audio id="audioBonusTempo" src="audio/bonus-tempo.mp3" preload="auto"></audio>
+
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/script.js"></script>
+</body>
+</html>
